@@ -24,7 +24,7 @@ import org.elasticsearch.action.support.SubscribableListener;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.ReferenceDocs;
-import org.elasticsearch.common.io.stream.InputStreamStreamInput;
+import org.elasticsearch.common.io.stream.ByteArrayStreamInput;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.network.IfConfig;
 import org.elasticsearch.common.settings.SecureSettings;
@@ -64,6 +64,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Security;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -136,7 +137,8 @@ class Elasticsearch {
             BootstrapInfo.init();
 
             // note that reading server args does *not* close System.in, as it will be read from later for shutdown notification
-            var in = new InputStreamStreamInput(System.in);
+//            var in = new InputStreamStreamInput(System.in);
+            var in = new ByteArrayStreamInput(Base64.getDecoder().decode("AAAAMW9yZy5lbGFzdGljc2VhcmNoLmNvbW1vbi5zZXR0aW5ncy5LZXlTdG9yZVdyYXBwZXIAAAAHAAGDA0AAAAAsIb4tOoEdabmsDn6rUSZgFSE+3Pgf+9PPAJiAQK6cNmczopCeBkeNH7TGX7Kfoej34HmnafecFpI/Ay5Yout1DAAAACsl2cMexWxl8/RtASsBAACiuwVlVKGmSUUTuyEeMBOurAsInpGcDieMCl2ZOcgEegVLbrGReAFykFTS8y27msbo/KCgIhMUI6gcOOAqMsOvdne92viTyUNza64dhXFfV0+hccgCBlCi9Z3Zfo4zWh0UsF/D3K1TSmC350W93UCi95pU/ihgxcywtxCQ1pVbvZhB6APGEIQEBusuoXD7pGuPYwkN0W2I/YjA4qegE/MKN/TP6xcmD96asY4d46SjgWfA9/vr0K5tU8JEHb22ooSAX1bMcYV3pRQH1vT8wARwWs0VzxtJdcE5wo+hv7VJm5gAdYZNPV49F/4YeGiDuNu2QLWFZ5hEOCjkBHxCN3vhgqg3ibcpjgOsq0Dkc7UUwgWjdfX4VLr/OaAXvWvrvcO0l9ngDRBZZRTfdQQ1eHBhY2suc2VjdXJpdHkudHJhbnNwb3J0LnNzbC5rZXlzdG9yZS5zZWN1cmVfcGFzc3dvcmQWNEFYckp1aUFTZWlySzNRdEpRMWRpUSCthyV6Yoe1dW7U9SH7sE7vkLOEIIz4+hbOGGr8bLFr3jd4cGFjay5zZWN1cml0eS50cmFuc3BvcnQuc3NsLnRydXN0c3RvcmUuc2VjdXJlX3Bhc3N3b3JkFjRBWHJKdWlBU2VpckszUXRKUTFkaVEgrYclemKHtXVu1PUh+7BO75CzhCCM+PoWzhhq/Gyxa94weHBhY2suc2VjdXJpdHkuaHR0cC5zc2wua2V5c3RvcmUuc2VjdXJlX3Bhc3N3b3JkFlA4NXZET0psUU1LT2l3bVh4NERnbUEgBcxAf2s0zP0Ngz2y0d3o3djvk9yR3ApcHAnjwAVznLANa2V5c3RvcmUuc2VlZBQqTnRWWXd4dGs1UTdASHAhK2RkeiCiKDpS6OTLQK3P/G2TqkNOZdhXii83M6l2oJZKk+3+ZgAOHGNsdXN0ZXIuaW5pdGlhbF9tYXN0ZXJfbm9kZXMHAQAHRVNfREVNTwxjbHVzdGVyLm5hbWUADWVsYXN0aWNzZWFyY2gJaHR0cC5ob3N0AAcwLjAuMC4wCW5vZGUubmFtZQAHRVNfREVNTwlwYXRoLmhvbWUAQEQ6XGRldlxwcm9qZWN0c1xlbGFzdGljc2VhcmNoXGxvY2FsXGVsYXN0aWNzZWFyY2gtOS40LjAtU05BUFNIT1QJcGF0aC5sb2dzAEVEOlxkZXZccHJvamVjdHNcZWxhc3RpY3NlYXJjaFxsb2NhbFxlbGFzdGljc2VhcmNoLTkuNC4wLVNOQVBTSE9UXGxvZ3MWeHBhY2suc2VjdXJpdHkuZW5hYmxlZAAEdHJ1ZSF4cGFjay5zZWN1cml0eS5lbnJvbGxtZW50LmVuYWJsZWQABHRydWUfeHBhY2suc2VjdXJpdHkuaHR0cC5zc2wuZW5hYmxlZAAEdHJ1ZSV4cGFjay5zZWN1cml0eS5odHRwLnNzbC5rZXlzdG9yZS5wYXRoAA5jZXJ0cy9odHRwLnAxMiR4cGFjay5zZWN1cml0eS50cmFuc3BvcnQuc3NsLmVuYWJsZWQABHRydWUqeHBhY2suc2VjdXJpdHkudHJhbnNwb3J0LnNzbC5rZXlzdG9yZS5wYXRoABNjZXJ0cy90cmFuc3BvcnQucDEyLHhwYWNrLnNlY3VyaXR5LnRyYW5zcG9ydC5zc2wudHJ1c3RzdG9yZS5wYXRoABNjZXJ0cy90cmFuc3BvcnQucDEyLnhwYWNrLnNlY3VyaXR5LnRyYW5zcG9ydC5zc2wudmVyaWZpY2F0aW9uX21vZGUAC2NlcnRpZmljYXRlR0Q6XGRldlxwcm9qZWN0c1xlbGFzdGljc2VhcmNoXGxvY2FsXGVsYXN0aWNzZWFyY2gtOS40LjAtU05BUFNIT1RcY29uZmlnRUQ6XGRldlxwcm9qZWN0c1xlbGFzdGljc2VhcmNoXGxvY2FsXGVsYXN0aWNzZWFyY2gtOS40LjAtU05BUFNIT1RcbG9ncw=="));
             args = new ServerArgs(in);
 
             // mostly just paths are used in phase 1, so secure settings are not needed

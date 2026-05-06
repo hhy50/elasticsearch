@@ -14,6 +14,9 @@ apply plugin: 'elasticsearch.internal-test-artifact'
 apply plugin: 'elasticsearch.test-build-info'
 apply plugin: 'elasticsearch.transport-version-references'
 apply plugin: 'elasticsearch.transport-version-resources'
+apply plugin: 'application'
+
+import java.nio.charset.StandardCharsets
 
 publishing {
   publications {
@@ -25,6 +28,127 @@ publishing {
 
 base {
   archivesName = 'elasticsearch'
+}
+
+application {
+  mainClass = 'org.elasticsearch.bootstrap.Elasticsearch'
+}
+
+tasks.register("runElasticsearch", JavaExec) {
+  def esHome = 'D:\\dev\\projects\\elasticsearch\\local\\elasticsearch-9.4.0-SNAPSHOT'
+  def esPathConf = "${esHome}\\config"
+  def serverModulePath = files(
+    sourceSets.main.output.classesDirs,
+    "${esHome}\\lib"
+  ).asPath
+  def serverPatchPath = files(
+    sourceSets.main.output.resourcesDir,
+    layout.buildDirectory.dir('generated-resources')
+  ).asPath
+  def entitlementPolicyVersion = version.toString().replace('-SNAPSHOT', '')
+  def serverEntitlementPolicyPatch = Base64.encoder.encodeToString(
+    """
+    versions:
+      - ${entitlementPolicyVersion}
+    policy:
+      org.elasticsearch.server:
+        - files:
+            - path: ${sourceSets.main.output.resourcesDir}
+              mode: read
+            - path: ${layout.buildDirectory.dir('generated-resources').get().asFile}
+              mode: read
+    """.stripIndent().getBytes(StandardCharsets.UTF_8)
+  )
+
+  group = "application"
+  description = "Run the elasticsearch module"
+  classpath = files()
+  mainModule.set('org.elasticsearch.server')
+  mainClass.set('org.elasticsearch.bootstrap.Elasticsearch')
+
+  environment 'ES_HOME', esHome
+  environment 'ES_PATH_CONF', esPathConf
+  environment 'JAVA', 'D:\\dev\\jdks\\azul-21.0.10\\bin\\java'
+  environment 'HOSTNAME', 'ES_DEMO'
+  systemProperty 'es.entitlements.policy.server', serverEntitlementPolicyPatch
+  standardInput = new InputStream() {
+    @Override
+    int read() throws IOException {
+      try {
+        Thread.sleep(Long.MAX_VALUE)
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt()
+      }
+      return -1
+    }
+  }
+
+  jvmArgs(
+    '-Des.networkaddress.cache.ttl=60',
+    '-Des.networkaddress.cache.negative.ttl=10',
+    '-XX:+AlwaysPreTouch',
+    '-Xss1m',
+    '-Djava.awt.headless=true',
+    '-Dfile.encoding=UTF-8',
+    '-Djna.nosys=true',
+    '-XX:-OmitStackTraceInFastThrow',
+    '-Dio.netty.noUnsafe=true',
+    '-Dio.netty.noKeySetOptimization=true',
+    '-Dio.netty.recycler.maxCapacityPerThread=0',
+    '--add-opens=org.apache.lucene.core/org.apache.lucene.codecs.lucene99=org.elasticsearch.server',
+    '--add-opens=org.apache.lucene.core/org.apache.lucene.codecs.hnsw=org.elasticsearch.server',
+    '--add-opens=org.apache.lucene.core/org.apache.lucene.internal.vectorization=org.elasticsearch.server',
+    '--add-exports=org.elasticsearch.logging/org.elasticsearch.logging.internal.spi=ALL-UNNAMED',
+    '-Dlog4j.shutdownHookEnabled=false',
+    '-Dlog4j2.disable.jmx=true',
+    '-Dlog4j2.formatMsgNoLookups=true',
+    '-Djava.locale.providers=CLDR',
+    '-Dorg.apache.lucene.vectorization.upperJavaFeatureVersion=21',
+    '-Des.path.home=D:\\dev\\projects\\elasticsearch\\local\\elasticsearch-9.4.0-SNAPSHOT',
+//    '-Des.distribution.type=null',
+//    '-Des.java.type=null',
+    '--enable-native-access=org.elasticsearch.nativeaccess,org.apache.lucene.core',
+    '--enable-native-access=ALL-UNNAMED',
+    '-XX:ReplayDataFile=logs/replay_pid%p.log',
+    '-XX:+EnableDynamicAgentLoading',
+    '-Djdk.attach.allowAttachSelf=true',
+    '--patch-module=java.base=D:\\dev\\projects\\elasticsearch\\local\\elasticsearch-9.4.0-SNAPSHOT\\lib\\entitlement-bridge\\elasticsearch-entitlement-bridge-9.4.0-SNAPSHOT.jar',
+    '--add-exports=java.base/org.elasticsearch.entitlement.bridge=org.elasticsearch.entitlement,java.logging,java.net.http,java.naming,jdk.net',
+    '--add-exports=jdk.jlink/jdk.tools.jlink.internal=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.net.www=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.net.www.protocol.ftp=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.net.www.protocol.file=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.net.www.protocol.jar=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.net.www.protocol.http=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.net.www.protocol.https=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.net.www.protocol.mailto=org.elasticsearch.entitlement',
+    '--add-exports=java.base/sun.nio.ch=org.elasticsearch.entitlement',
+    '--add-exports=java.base/jdk.internal.foreign=org.elasticsearch.entitlement',
+    '--add-exports=java.base/jdk.internal.foreign.abi=org.elasticsearch.entitlement',
+    '--add-exports=java.base/jdk.internal.foreign.layout=org.elasticsearch.entitlement',
+    '--add-exports=java.net.http/jdk.internal.net.http=org.elasticsearch.entitlement',
+    '--add-exports=jdk.jdi/com.sun.tools.jdi=org.elasticsearch.entitlement',
+    '-XX:+UseG1GC',
+    '-Djava.io.tmpdir=C:\\Users\\haiyang\\AppData\\Local\\Temp\\elasticsearch',
+    '--add-modules=jdk.incubator.vector',
+    '-Dorg.apache.lucene.store.defaultReadAdvice=normal',
+    '-Dorg.apache.lucene.store.MMapDirectory.sharedArenaMaxPermits=1',
+    '-XX:+HeapDumpOnOutOfMemoryError',
+    '-XX:+ExitOnOutOfMemoryError',
+    '-XX:ErrorFile=hs_err_pid%p.log',
+//    '-Xlog:gc*,gc+age=trace,safepoint:file=gc.log:utctime,level,pid,tags:filecount=32,filesize=64m',
+//    '-Xms4096m',
+    '-Xmx4096m',
+    '-XX:MaxDirectMemorySize=8503951360',
+    '-XX:InitiatingHeapOccupancyPercent=30',
+    '-XX:G1ReservePercent=25',
+    '--patch-module=org.elasticsearch.server=' + serverPatchPath,
+    '--module-path',
+    serverModulePath,
+    '--add-modules=jdk.net',
+    '--add-modules=jdk.management.agent',
+    '--add-modules=ALL-MODULE-PATH'
+  )
 }
 
 dependencies {
